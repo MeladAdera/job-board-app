@@ -31,6 +31,7 @@ app.get('/', (req, res) => {
 
 // Use Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/jobs', require('./src/routes/jobRoutes'));
 
 // Start Server
 const startServer = async () => {
