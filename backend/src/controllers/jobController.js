@@ -1,3 +1,4 @@
+///home/yazan-ali/Desktop/job-board-app/backend/src/controllers/jobController.js
 const pool = require('../config/database');
 
 // Create a new job
