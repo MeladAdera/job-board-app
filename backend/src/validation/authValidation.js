@@ -1,43 +1,43 @@
-//backend/src/validation/authValidation.js
+// backend/src/validation/authValidation.js
 const { body, validationResult } = require('express-validator');
 
-// قواعد التحقق من صحة بيانات التسجيل
+// Registration data validation rules
 const validateRegistration = [
   body('name')
     .notEmpty()
-    .withMessage('الاسم مطلوب')
+    .withMessage('Name is required')
     .isLength({ min: 2, max: 50 })
-    .withMessage('الاسم يجب أن يكون بين 2 و 50 حرفاً'),
+    .withMessage('Name must be between 2 and 50 characters'),
   
   body('email')
     .isEmail()
-    .withMessage('البريد الإلكتروني غير صالح')
+    .withMessage('Invalid email address')
     .normalizeEmail(),
   
   body('password')
     .isLength({ min: 6 })
-    .withMessage('كلمة المرور يجب أن تكون至少 6 أحرف')
+    .withMessage('Password must be at least 6 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('كلمة المرور يجب أن تحتوي على حرف كبير, حرف صغير, ورقم'),
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   
   body('role')
     .isIn(['candidate', 'recruiter'])
-    .withMessage('الدور يجب أن يكون either candidate or recruiter')
+    .withMessage('Role must be either candidate or recruiter')
 ];
 
-// قواعد التحقق من صحة بيانات تسجيل الدخول
+// Login data validation rules
 const validateLogin = [
   body('email')
     .isEmail()
-    .withMessage('البريد الإلكتروني غير صالح')
+    .withMessage('Invalid email address')
     .normalizeEmail(),
   
   body('password')
     .notEmpty()
-    .withMessage('كلمة المرور مطلوبة')
+    .withMessage('Password is required')
 ];
 
-// دالة للتحقق من الأخطاء
+// Error handling function
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

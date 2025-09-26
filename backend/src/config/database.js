@@ -1,4 +1,4 @@
-//job-board-app/backend/src/config/database.js
+// job-board-app/backend/src/config/database.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -10,7 +10,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
-// اختبار الاتصال
+// Test connection
 pool.connect((err, client, release) => {
   if (err) {
     return console.error('Error acquiring client', err.stack);

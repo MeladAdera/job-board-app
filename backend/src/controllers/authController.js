@@ -2,26 +2,26 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
 
-// تسجيل مستخدم جديد
+// Register a new user
 const register = async (req, res) => {
   const { name, email, password, role } = req.body;
 
   try {
-    // التحقق إذا كان المستخدم موجود بالفعل
+    // Check if user already exists
     const userExists = await pool.query(
       'SELECT id FROM users WHERE email = $1',
       [email]
     );
 
     if (userExists.rows.length > 0) {
-      return res.status(400).json({ error: 'البريد الإلكتروني مستخدم already' });
+      return res.status(400).json({ error: 'Email is already in use' });
     }
 
-    // تشفير كلمة المرور
+    // Encrypt password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // حفظ المستخدم في قاعدة البيانات
+    // Save user to database
     const result = await pool.query(
       'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
       [name, email, hashedPassword, role]
@@ -29,7 +29,7 @@ const register = async (req, res) => {
 
     const user = result.rows[0];
 
-    // إنشاء token
+    // Create token
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
@@ -37,7 +37,7 @@ const register = async (req, res) => {
     );
 
     res.status(201).json({
-      message: 'تم إنشاء الحساب successfully',
+      message: 'Account created successfully',
       token,
       user: {
         id: user.id,
@@ -48,36 +48,36 @@ const register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('خطأ في التسجيل:', error);
-    res.status(500).json({ error: 'خطأ في السيرفر' });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-// تسجيل الدخول
+// Login
 const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // البحث عن المستخدم
+    // Find user
     const result = await pool.query(
       'SELECT id, name, email, password_hash, role FROM users WHERE email = $1',
       [email]
     );
 
     if (result.rows.length === 0) {
-      return res.status(400).json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+      return res.status(400).json({ error: 'Invalid email or password' });
     }
 
     const user = result.rows[0];
 
-    // التحقق من كلمة المرور
+    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
-      return res.status(400).json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
+      return res.status(400).json({ error: 'Invalid email or password' });
     }
 
-    // إنشاء token
+    // Create token
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
@@ -85,7 +85,7 @@ const login = async (req, res) => {
     );
 
     res.json({
-      message: 'تم تسجيل الدخول successfully',
+      message: 'Logged in successfully',
       token,
       user: {
         id: user.id,
@@ -96,20 +96,20 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('خطأ في تسجيل الدخول:', error);
-    res.status(500).json({ error: 'خطأ في السيرفر' });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-// الحصول على بيانات المستخدم الحالي
+// Get current user data
 const getMe = async (req, res) => {
   try {
     res.json({
       user: req.user
     });
   } catch (error) {
-    console.error('خطأ في جلب بيانات المستخدم:', error);
-    res.status(500).json({ error: 'خطأ في السيرفر' });
+    console.error('Error fetching user data:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 

@@ -1,15 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const { createJob, getAllJobs } = require('../controllers/jobController');
+const {
+  createJob,
+  getAllJobs,
+  getJobById,
+  updateJob,
+  deleteJob
+} = require('../controllers/jobController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// All routes require authentication
+// جميع المسارات تتطلب مصادقة
 router.use(authenticateToken);
 
-// Create job (recruiters only)
+// إنشاء وظيفة (للمسؤولين فقط)
 router.post('/', authorizeRoles('recruiter', 'admin'), createJob);
 
-// Get all jobs (accessible to everyone)
+// الحصول على جميع الوظائف (مسموح للجميع)
 router.get('/', getAllJobs);
+
+// الحصول على وظيفة محددة (مسموح للجميع)
+router.get('/:id', getJobById);
+
+// تحديث وظيفة (للمالك أو المسؤول فقط)
+router.put('/:id', authorizeRoles('recruiter', 'admin'), updateJob);
+
+// حذف وظيفة (للمالك أو المسؤول فقط)
+router.delete('/:id', authorizeRoles('recruiter', 'admin'), deleteJob);
 
 module.exports = router;
