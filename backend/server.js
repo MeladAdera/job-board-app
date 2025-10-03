@@ -16,21 +16,20 @@ app.use(cors());
 app.use(express.json());
 
 // Basic Routes
-// تحديث صفحة الترحيب لعرض الـ endpoints الجديدة
 app.get('/', (req, res) => {
   res.json({ 
       message: 'Welcome! Job Board Server is running successfully',
       endpoints: {
           auth: {
               register: 'POST /api/auth/register',
-              login: 'POST /api/auth/login',
+              login: 'POST /api/auth/login', 
               getMe: 'GET /api/auth/me'
           },
           jobs: {
               getAll: 'GET /api/jobs',
               getOne: 'GET /api/jobs/:id',
               create: 'POST /api/jobs',
-              update: 'PUT /api/jobs/:id',
+              update: 'PUT /api/jobs/:id', 
               delete: 'DELETE /api/jobs/:id'
           },
           applications: {
@@ -39,6 +38,11 @@ app.get('/', (req, res) => {
               getJobApps: 'GET /api/applications/job/:id',
               updateStatus: 'PUT /api/applications/:id/status',
               getOne: 'GET /api/applications/:id'
+          },
+          upload: {
+              uploadResume: 'POST /api/upload/resume',
+              getResume: 'GET /api/upload/resume', 
+              deleteResume: 'DELETE /api/upload/resume'
           }
       }
   });
@@ -49,7 +53,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', require('./src/routes/jobRoutes'));
 
 app.use('/api/applications', require('./src/routes/applicationRoutes'));
-
+app.use('/api/upload', require('./src/routes/uploadRoutes'));
 // Start Server
 const startServer = async () => {
   try {
