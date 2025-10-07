@@ -1,4 +1,4 @@
-//backend/src/routes/authRoutes.js
+// backend/src/routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const {
@@ -13,7 +13,7 @@ const {
 } = require('../validation/authValidation');
 const { authenticateToken } = require('../middleware/auth');
 
-// تسجيل مستخدم جديد
+// Register new user
 router.post(
   '/register',
   validateRegistration,
@@ -21,7 +21,7 @@ router.post(
   register
 );
 
-// تسجيل الدخول
+// Login
 router.post(
   '/login', 
   validateLogin,
@@ -29,7 +29,7 @@ router.post(
   login
 );
 
-// الحصول على بيانات المستخدم الحالي
+// Get current user data
 router.get('/me', authenticateToken, getMe);
 
 module.exports = router;

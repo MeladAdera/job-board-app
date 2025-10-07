@@ -1,19 +1,20 @@
 //backend/src/models/initDB.js
 const pool = require('../config/database');
+const bcrypt = require('bcryptjs');
 
 const initDatabase = async () => {
   try {
-    // يمكننا هنا إضافة أي بيانات أولية إذا needed
-    console.log('تم التحقق من اتصال قاعدة البيانات بنجاح');
+    // We can add any initial data here if needed
+    console.log('Database connection verified successfully');
     
-    // يمكننا إضافة مستخدم افتراضي إذا needed للتجربة
+    // We can add a default user if needed for testing
     // await createDefaultUser();
   } catch (error) {
-    console.error('خطأ في الاتصال بقاعدة البيانات:', error);
+    console.error('Database connection error:', error);
   }
 };
 
-// دالة مساعدة لإنشاء مستخدم افتراضي (اختياري)
+// Helper function to create a default user (optional)
 const createDefaultUser = async () => {
   try {
     const result = await pool.query(
@@ -27,10 +28,10 @@ const createDefaultUser = async () => {
         'INSERT INTO users (email, password_hash, name, role) VALUES ($1, $2, $3, $4)',
         ['admin@jobboard.com', hashedPassword, 'Admin User', 'admin']
       );
-      console.log('تم إنشاء المستخدم الافتراضي');
+      console.log('Default user created successfully');
     }
   } catch (error) {
-    console.error('خطأ في إنشاء المستخدم الافتراضي:', error);
+    console.error('Error creating default user:', error);
   }
 };
 
