@@ -16,16 +16,16 @@ const { authenticateToken } = require('../middleware/auth');
 // Register new user
 router.post(
   '/register',
-  validateRegistration,
-  handleValidationErrors,
+  validateRegistration,  // ✅ تفعيل التحقق
+  handleValidationErrors, // ✅ تفعيل معالجة أخطاء التحقق
   register
 );
 
 // Login
 router.post(
   '/login', 
-  validateLogin,
-  handleValidationErrors,
+  validateLogin,        // ✅ تفعيل التحقق
+  handleValidationErrors, // ✅ تفعيل معالجة أخطاء التحقق
   login
 );
 
