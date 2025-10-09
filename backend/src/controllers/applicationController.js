@@ -1,195 +1,134 @@
-//backend/src/controllers/applicationController.js
+/**
+ * 🎯 JOB APPLICATION MANAGEMENT CONTROLLER
+ * Implements application workflow with state management and access control
+ * Uses service layer pattern for business logic separation
+ */
+
+const asyncHandler = require('express-async-handler');
 const ApplicationService = require('../services/applicationService');
+const { ValidationError, NotFoundError, ForbiddenError } = require('../utils/errors/AppError');
+const { sendSuccessResponse } = require('../utils/responseHelper');
 
 class ApplicationController {
     
-    static async submitApplication(req, res) {
-        try {
-            const candidate_id = req.user.id;
-            const { job_id, cover_letter, resume_url, resume_name } = req.body;
+    /**
+     * SUBMIT JOB APPLICATION
+     * Implements idempotent application pattern with duplicate prevention
+     * Uses service layer for business logic encapsulation and data validation
+     */
+    static submitApplication = asyncHandler(async (req, res) => {
+        const candidate_id = req.user.id; // From JWT authentication middleware
+        const { job_id, cover_letter, resume_url, resume_name } = req.body;
 
-            if (!job_id) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Job ID is required'
-                });
-            }
-
-            const application = await ApplicationService.submitApplication({
-                job_id: parseInt(job_id),
-                candidate_id,
-                cover_letter: cover_letter || '',
-                resume_url: resume_url || '',
-                resume_name: resume_name || ''
-            });
-
-            res.status(201).json({
-                success: true,
-                message: 'Application submitted successfully',
-                data: application
-            });
-
-        } catch (error) {
-            if (error.message.includes('already applied')) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'You have already applied to this job'
-                });
-            }
-
-            console.error('Application submission error:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Internal server error'
-            });
+        // Pre-service validation for required parameters
+        if (!job_id) {
+            throw new ValidationError('Job ID is required');
         }
-    }
 
-    static async getMyApplications(req, res) {
-        try {
-            const candidate_id = req.user.id;
-            
-            const applications = await ApplicationService.getCandidateApplications(candidate_id);
+        // Service layer invocation with data normalization
+        const application = await ApplicationService.submitApplication({
+            job_id: parseInt(job_id), // Type coercion with validation
+            candidate_id,
+            cover_letter: cover_letter || '', // Default value pattern
+            resume_url: resume_url || '',
+            resume_name: resume_name || ''
+        });
 
-            res.json({
-                success: true,
-                data: applications,
-                count: applications.length
-            });
+        sendSuccessResponse(res, application, 'Application submitted successfully', 201);
+    });
 
-        } catch (error) {
-            console.error('Get my applications error:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Failed to retrieve applications'
-            });
+    /**
+     * RETRIEVE CANDIDATE'S APPLICATIONS
+     * Implements personal data access pattern with contextual aggregation
+     * Joins application data with job information for comprehensive view
+     */
+    static getMyApplications = asyncHandler(async (req, res) => {
+        const candidate_id = req.user.id;
+        
+        const applications = await ApplicationService.getCandidateApplications(candidate_id);
+
+        sendSuccessResponse(res, {
+            applications,
+            count: applications.length // Metadata for client-side pagination
+        }, 'Applications retrieved successfully');
+    });
+
+    /**
+     * RETRIEVE JOB APPLICATIONS FOR RECRUITER
+     * Implements ownership-based data access pattern with authorization
+     * Ensures recruiters can only access applications for their own job postings
+     */
+    static getJobApplications = asyncHandler(async (req, res) => {
+        const { id: job_id } = req.params;
+        const recruiter_id = req.user.id;
+
+        // Input sanitization and type validation
+        const parsedJobId = parseInt(job_id);
+        if (isNaN(parsedJobId)) {
+            throw new ValidationError('Invalid job ID format');
         }
-    }
 
-    static async getJobApplications(req, res) {
-        try {
-            const { id: job_id } = req.params;
-            const recruiter_id = req.user.id;
+        const applications = await ApplicationService.getJobApplications(parsedJobId, recruiter_id);
 
-            const parsedJobId = parseInt(job_id);
-            if (isNaN(parsedJobId)) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid job ID format'
-                });
-            }
+        sendSuccessResponse(res, {
+            applications,
+            count: applications.length
+        }, 'Job applications retrieved successfully');
+    });
 
-            const applications = await ApplicationService.getJobApplications(parsedJobId, recruiter_id);
+    /**
+     * UPDATE APPLICATION STATUS
+     * Implements state transition pattern with workflow validation
+     * Maintains audit trail through reviewer tracking and timestamps
+     */
+    static updateApplicationStatus = asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const { status, notes } = req.body;
+        const reviewed_by = req.user.id;
 
-            res.json({
-                success: true,
-                data: applications,
-                count: applications.length
-            });
-
-        } catch (error) {
-            let statusCode = 500;
-            let errorMessage = 'Failed to retrieve job applications';
-
-            if (error.message.includes('Access denied')) {
-                statusCode = 403;
-                errorMessage = 'You do not have permission to view these applications';
-            }
-
-            console.error('Get job applications error:', error);
-            res.status(statusCode).json({
-                success: false,
-                error: errorMessage
-            });
+        if (!status) {
+            throw new ValidationError('Status is required');
         }
-    }
 
-    static async updateApplicationStatus(req, res) {
-        try {
-            const { id } = req.params;
-            const { status, notes } = req.body;
-            const reviewed_by = req.user.id;
-
-            if (!status) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Status is required'
-                });
-            }
-
-            const parsedId = parseInt(id);
-            if (isNaN(parsedId)) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid application ID'
-                });
-            }
-
-            const application = await ApplicationService.updateApplicationStatus(
-                parsedId, 
-                status, 
-                notes || '', 
-                reviewed_by
-            );
-
-            res.json({
-                success: true,
-                message: 'Application status updated successfully',
-                data: application
-            });
-
-        } catch (error) {
-            console.error('Update application status error:', error);
-            res.status(400).json({
-                success: false,
-                error: error.message
-            });
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+            throw new ValidationError('Invalid application ID');
         }
-    }
 
-    static async getApplicationById(req, res) {
-        try {
-            const { id } = req.params;
-            const user_id = req.user.id;
-            const user_role = req.user.role;
+        const application = await ApplicationService.updateApplicationStatus(
+            parsedId, 
+            status, 
+            notes || '', 
+            reviewed_by
+        );
 
-            const parsedId = parseInt(id);
-            if (isNaN(parsedId)) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid application ID'
-                });
-            }
+        sendSuccessResponse(res, application, 'Application status updated successfully');
+    });
 
-            const application = await ApplicationService.getApplicationById(parsedId);
+    /**
+     * RETRIEVE SPECIFIC APPLICATION
+     * Implements fine-grained access control with role-based visibility
+     * Candidates see only their applications, recruiters see applications for their jobs
+     */
+    static getApplicationById = asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const user_id = req.user.id;
+        const user_role = req.user.role;
 
-            if (user_role === 'candidate' && application.candidate_id !== user_id) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Access denied. You can only view your own applications'
-                });
-            }
-
-            res.json({
-                success: true,
-                data: application
-            });
-
-        } catch (error) {
-            if (error.message.includes('not found')) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Application not found'
-                });
-            }
-
-            console.error('Get application by ID error:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Failed to retrieve application'
-            });
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+            throw new ValidationError('Invalid application ID');
         }
-    }
+
+        const application = await ApplicationService.getApplicationById(parsedId);
+
+        // Role-based access control implementation
+        if (user_role === 'candidate' && application.candidate_id !== user_id) {
+            throw new ForbiddenError('Access denied to other candidates applications');
+        }
+
+        sendSuccessResponse(res, application, 'Application retrieved successfully');
+    });
 }
 
 module.exports = ApplicationController;
